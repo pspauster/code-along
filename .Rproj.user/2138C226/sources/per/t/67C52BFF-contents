@@ -1,0 +1,88 @@
+---
+title: "code-along-mta"
+output: html_document
+date: "2024-11-05"
+---
+
+Hi! Welcome to your first R Markdown. Here you can write text and add code to specific snippets, running them each individually.
+
+Let's start by running our setup to get our libraries
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sf)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's come up with a research question!
+
+I was standing on the subway platform recently, waiting for a delayed train and wondering if subway service has already gotten worse after the cancellation of congestion pricing earlier this year, which would have helped pay for repairs and upgrades.
+
+So I'm going to go look and see what data there is on MTA service reliability!
+
+I found this [MTA dashboard](https://metrics.mta.info/?subway/operationalmetrics)
+
+And noticed this dataset on [on-time performance](https://data.ny.gov/Transportation/MTA-Subway-Terminal-On-Time-Performance-Beginning-/vtvh-gimj/about_data) is on the state open data site
+
+Let's grab that data for the past two years!
+
+```{r}
+# Define the API endpoint and query parameters
+url <- "https://data.cityofnewyork.us/resource/92iy-9c3n.csv"
+query <- paste0(url, "?$limit=1000000")
+
+# Read the CSV file with the specified limit
+storefronts <- read_csv(query)
+
+```
+
+This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
+
+Let's start by cleaning the data a little bit.
+- Get only the data from last year (2023). 2024 is not over yet
+- Reformat the borough_block_lot as a character column
+```{r}
+
+#write your code here
+storefronts_clean <- storefronts %>%
+  filter(reporting_year == 2023) %>% 
+  mutate(borough_block_lot = as.character(borough_block_lot))
+
+```
+
+Let's do some exploratory data analysis.
+
+I wonder where all these properties are located? Should we try mapping it?
+
+Here I'll help you out using the spatial features package to make the dataset into a spatial object
+
+```{r}
+
+storefronts_sf <- storefronts_clean %>% 
+  st_as_sf(coords = c("longitude", "latitude"))
+
+```
+
+Now let's try mapping it. We can do this with our old friend ggplot!
+
+```{r}
+
+storefronts_sf %>% 
+  ggplot()+
+  geom_sf(mapping = aes())
+
+```
+
+That's a few too many points to look at.
+
+Now let's take that dataset and create a new object where we summarize the vacancy rate by community board.
+
+```{r}
+
+#write your code here
+
+storefronts_cb_sum <- storefronts_clean %>%  
+
+```
+
+
