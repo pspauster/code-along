@@ -1,5 +1,5 @@
 ---
-title: "code-along-mta"
+title: "code-along-storefronts"
 output: html_document
 date: "2024-11-05"
 ---
@@ -16,13 +16,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Let's come up with a research question!
 
-I was standing on the subway platform recently, waiting for a delayed train and wondering if subway service has already gotten worse after the cancellation of congestion pricing earlier this year, which would have helped pay for repairs and upgrades.
+I was wondering what areas of the city are doing well for commercial retail after the pandemic.
 
-So I'm going to go look and see what data there is on MTA service reliability!
+So I'm going to go look and see what data there is on business activity!
 
-I found this [MTA dashboard](https://metrics.mta.info/?subway/operationalmetrics)
-
-And noticed this dataset on [on-time performance](https://data.ny.gov/Transportation/MTA-Subway-Terminal-On-Time-Performance-Beginning-/vtvh-gimj/about_data) is on the state open data site
+And noticed this dataset on [storefronts reported vacant](https://data.cityofnewyork.us/City-Government/Storefronts-Reported-Vacant-or-Not/92iy-9c3n/about_data) is on the city open data site
 
 Let's grab that data for the past two years!
 
@@ -43,10 +41,7 @@ Let's start by cleaning the data a little bit.
 - Reformat the borough_block_lot as a character column
 ```{r}
 
-#write your code here
-storefronts_clean <- storefronts %>%
-  filter(reporting_year == 2023) %>% 
-  mutate(borough_block_lot = as.character(borough_block_lot))
+storefronts_clean <- storefronts #write your code here
 
 ```
 
@@ -59,7 +54,7 @@ Here I'll help you out using the spatial features package to make the dataset in
 ```{r}
 
 storefronts_sf <- storefronts_clean %>% 
-  st_as_sf(coords = c("longitude", "latitude"))
+  st_as_sf(coords = c("longitude", "latitude"), remove = F)
 
 ```
 
@@ -72,16 +67,98 @@ storefronts_sf %>%
   geom_sf(mapping = aes())
 
 ```
-
-That's a few too many points to look at.
-
-Now let's take that dataset and create a new object where we summarize the vacancy rate by community board.
+Looks like we have some zeroes for longitude and latitude. Filter them out and plot again.
 
 ```{r}
 
+storefronts_sf %>% 
+  #add a line here to filter
+  ggplot()+
+  geom_sf(mapping = aes())
+
+```
+
+
+Hey! looks like NYC. But that's a few too many points to look at.
+
+Let's take a look at vacancy. Use count() to quickly see how many are vacant
+```{r}
 #write your code here
 
-storefronts_cb_sum <- storefronts_clean %>%  
+```
+
+
+Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on 12/31/2023.
+
+```{r}
+
+storefronts_cb_sum <- storefronts_clean #write your code here
+
+```
+
+We could try writing out our data here, and joining it to shapes in QGIS. But what if we did that in R instead? We know how to do joins in R!
+
+Let's use the sf package to read in a shapefile of the community districts(). We can go directly to sf by adding .geojson to the API endpoint.
+
+```{r}
+
+cds_sf <- read_sf("https://data.cityofnewyork.us/resource/jp9i-3b7y.geojson")
+
+```
+
+Or we can read it in as a csv and then set the geometry.
+
+```{r}
+
+cds_csv <- read_csv("https://data.cityofnewyork.us/resource/jp9i-3b7y.csv")
+
+cds_sf <- cds_csv %>% 
+  st_as_sf(wkt = "the_geom")#the name of the column where the geography info is!
+
+```
+
+Now let's join them together! Write a join to match our summary by cd to the shapes.
+
+```{r}
+
+cd_summary_sf <- #write your code here
+  
+#hint keep the shapefile on the left to preserve the spatial formatting of the object
+
+```
+
+Amazing! We can use sf to export this as a shapefile that has all the data we need, ready for QGIS
+
+```{r}
+
+write_sf(cd_summary_sf, "cd_summary.geojson")
+
+```
+But hey! We could also make this map in R! Let's try plotting our summarized shapefile with ggplot.
+
+```{r}
+
+cd_map <- cd_summary_sf %>% 
+  st_set_crs("2263") %>% #I'm going to change the projection for you!
+  #write your code here
+
+cd_map
+
+```
+
+It could use a little styling... add a nicer color ramp and give it a theme
+
+```{r}
+cd_map_pretty <- cd_map +
+  #write your code here
+
+cd_map_pretty
+
+```
+I could even write this out to edit in a vector graphics software
+
+```{r}
+ggsave("cd_summary_map.svg") #remember this always writes the last thing you ran
 
 ```
 

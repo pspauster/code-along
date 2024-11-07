@@ -1,0 +1,174 @@
+---
+title: "code-along-storefronts"
+output: html_document
+date: "2024-11-05"
+---
+
+Hi! Welcome to your first R Markdown. Here you can write text and add code to specific snippets, running them each individually.
+
+Let's start by running our setup to get our libraries
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sf)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's come up with a research question!
+
+I was wondering what areas of the city are doing well for commercial retail after the pandemic.
+
+So I'm going to go look and see what data there is on business activity!
+
+And noticed this dataset on [storefronts reported vacant](https://data.cityofnewyork.us/City-Government/Storefronts-Reported-Vacant-or-Not/92iy-9c3n/about_data) is on the city open data site
+
+Let's grab that data for the past two years!
+
+```{r}
+# Define the API endpoint and query parameters
+url <- "https://data.cityofnewyork.us/resource/92iy-9c3n.csv"
+query <- paste0(url, "?$limit=1000000")
+
+# Read the CSV file with the specified limit
+storefronts <- read_csv(query)
+
+```
+
+This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
+
+Let's start by cleaning the data a little bit.
+- Get only the data from last year (2023). 2024 is not over yet
+- Reformat the borough_block_lot as a character column
+```{r}
+
+#write your code here
+storefronts_clean <- storefronts %>%
+  filter(reporting_year == 2023) %>% 
+  mutate(borough_block_lot = as.character(borough_block_lot))
+
+```
+
+Let's do some exploratory data analysis.
+
+I wonder where all these properties are located? Should we try mapping it?
+
+Here I'll help you out using the spatial features package to make the dataset into a spatial object
+
+```{r}
+
+storefronts_sf <- storefronts_clean %>% 
+  st_as_sf(coords = c("longitude", "latitude"), remove = F)
+
+```
+
+Now let's try mapping it. We can do this with our old friend ggplot!
+
+```{r}
+
+storefronts_sf %>% 
+  ggplot()+
+  geom_sf(mapping = aes())
+
+```
+Looks like we have some zeroes for longitude and latitude. Filter them out and plot again.
+
+```{r}
+
+storefronts_sf %>% 
+  filter(longitude != 0) %>% 
+  ggplot()+
+  geom_sf(mapping = aes())
+
+```
+
+
+Hey! looks like NYC. But that's a few too many points to look at.
+
+Let's take a look at vacancy. Use count() to quickly see how many are vacant
+```{r}
+count(storefronts_clean, vacant_on_12_31)
+
+```
+
+
+Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on 12/31/2023.
+
+```{r}
+
+#write your code here
+
+storefronts_cb_sum <- storefronts_clean %>% 
+  group_by(community_board) %>% 
+  summarize(vacant = sum(vacant_on_12_31 == "YES"),
+            occupied = sum(vacant_on_12_31 == "NO"),
+            vacancy_rate = vacant/(vacant + occupied))
+
+```
+
+We could try writing out our data here, and joining it to shapes in QGIS. But what if we did that in R instead? We know how to do joins in R!
+
+Let's use the sf package to read in a shapefile of the community districts(). We can go directly to sf by adding .geojson to the API endpoint.
+
+```{r}
+
+cds_sf <- read_sf("https://data.cityofnewyork.us/resource/jp9i-3b7y.geojson")
+
+```
+
+Or we can read it in as a csv and then set the geometry.
+
+```{r}
+
+cds_csv <- read_csv("https://data.cityofnewyork.us/resource/jp9i-3b7y.csv")
+
+cds_sf <- cds_csv %>% 
+  st_as_sf(wkt = "the_geom")#the name of the column where the geography info is!
+
+```
+
+Now let's join them together! Write a join to match our summary by cd to the shapes.
+
+```{r}
+
+cd_summary_sf <- full_join(cds_sf, storefronts_cb_sum, by = c("boro_cd"="community_board")) #hint keep the shapefile on the left to preserve the spatial formatting of the object
+
+```
+
+Amazing! We can use sf to export this as a shapefile that has all the data we need, ready for QGIS
+
+```{r}
+
+write_sf(cd_summary_sf, "cd_summary.geojson")
+
+```
+But hey! We could also make this map in R! Let's try plotting our summarized shapefile with ggplot.
+
+```{r}
+
+cd_map <- cd_summary_sf %>% 
+  st_set_crs("2263") %>% 
+  ggplot() +
+  geom_sf(mapping = aes(fill = vacancy_rate), color = NA)
+
+cd_map
+
+```
+
+It could use a little styling... add a nicer color ramp and give it a theme
+
+```{r}
+cd_map_pretty <- cd_map +
+  scale_fill_gradient(low = "yellow", high = "red", na.value = "light gray") +
+  theme_void()
+
+cd_map_pretty
+
+```
+I could even write this out to edit in a vector graphics software
+
+```{r}
+ggsave("cd_summary_map.svg")
+
+```
+
+
