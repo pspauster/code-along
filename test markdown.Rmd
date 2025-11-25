@@ -1,7 +1,7 @@
 ---
 title: "code-along-storefronts"
 output: html_document
-date: "2025-11-24"
+date: "2024-11-05"
 ---
 
 Hi! Welcome to your first R Markdown. Here you can write text and add code to specific snippets, running them each individually.
@@ -37,7 +37,7 @@ storefronts <- read_csv(query)
 This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
 
 Let's start by cleaning the data a little bit.
-- Get only the data from the last full calendar year.
+- Get only the data from last year (2023). 2024 is not over yet
 - Reformat the borough_block_lot as a character column
 ```{r}
 
@@ -88,7 +88,7 @@ Let's take a look at vacancy. Use count() to quickly see how many are vacant
 ```
 
 
-Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on the last day of the year.
+Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on 12/31/2023.
 
 ```{r}
 
@@ -155,11 +155,10 @@ cd_map_pretty <- cd_map +
 cd_map_pretty
 
 ```
-I could even write this out to edit in a vector graphics software (you don't need to do this part in order to get credit!)
+I could even write this out to edit in a vector graphics software
 
 ```{r}
 ggsave("cd_summary_map.svg") #remember this always writes the last thing you ran
 
 ```
-
 

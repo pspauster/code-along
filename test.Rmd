@@ -1,7 +1,7 @@
 ---
 title: "code-along-storefronts"
 output: html_document
-date: "2025-11-24"
+date: "2024-11-05"
 ---
 
 Hi! Welcome to your first R Markdown. Here you can write text and add code to specific snippets, running them each individually.
@@ -37,11 +37,13 @@ storefronts <- read_csv(query)
 This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
 
 Let's start by cleaning the data a little bit.
-- Get only the data from the last full calendar year.
+- Get only the data from last year (2023). 2024 is not over yet
 - Reformat the borough_block_lot as a character column
 ```{r}
 
-storefronts_clean <- storefronts #write your code here
+storefronts_clean <- storefronts %>% 
+  filter(reporting_year == "2023") %>% 
+  mutate(borough_block_lot = as.character(borough_block_lot))
 
 ```
 
@@ -72,7 +74,7 @@ Looks like we have some zeroes for longitude and latitude. Filter them out and p
 ```{r}
 
 storefronts_sf %>% 
-  #add a line here to filter
+  filter(latitude != 0) %>% 
   ggplot()+
   geom_sf(mapping = aes())
 
@@ -84,15 +86,32 @@ Hey! looks like NYC. But that's a few too many points to look at.
 Let's take a look at vacancy. Use count() to quickly see how many are vacant
 ```{r}
 #write your code here
+storefronts_clean %>% 
+  count(vacant_on_12_31)
+
+storefronts_sf %>% 
+  group_by(vacant_on_12_31) %>% 
+  summarize(variable_name=n())
 
 ```
 
 
-Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on the last day of the year.
+Now let's take that dataset and create a new object where we summarize the vacancy rate by community board on 12/31/2023.
 
 ```{r}
 
-storefronts_cb_sum <- storefronts_clean #write your code here
+storefronts_cb_sum <- storefronts_clean %>% 
+  group_by(community_board) %>% 
+  summarize(count_per_board = n(),
+            vacant_storefronts = sum(vacant_on_12_31 == "YES")) %>%
+  mutate(vacancy_rate = vacant_storefronts/count_per_board*100,
+         community_board = as.character(community_board))
+
+storefronts_clean %>% 
+  group_by(community_board, vacant_on_12_31) %>% 
+  summarize(count_per_board = n()) %>%
+  group_by(community_board) %>% 
+  mutate(total = sum(count_per_board))
 
 ```
 
@@ -121,7 +140,7 @@ Now let's join them together! Write a join to match our summary by cd to the sha
 
 ```{r}
 
-cd_summary_sf <- #write your code here
+cd_summary_sf <- left_join(cds_sf,storefronts_cb_sum, by = c("boro_cd"="community_board"))
   
 #hint keep the shapefile on the left to preserve the spatial formatting of the object
 
@@ -139,7 +158,10 @@ But hey! We could also make this map in R! Let's try plotting our summarized sha
 ```{r}
 
 cd_map <- cd_summary_sf %>% 
-  st_set_crs("2263") %>% #I'm going to change the projection for you!
+  st_set_crs("2263") %>%
+  ggplot()+
+  geom_sf(mapping = aes(fill = vacancy_rate), color = NA)
+  #I'm going to change the projection for you!
   #write your code here
 
 cd_map
@@ -150,16 +172,16 @@ It could use a little styling... add a nicer color ramp and give it a theme
 
 ```{r}
 cd_map_pretty <- cd_map +
-  #write your code here
+  scale_fill_gradient(low = "yellow", high = "red", na.value = "lightgray")+
+  theme_void()
 
 cd_map_pretty
 
 ```
-I could even write this out to edit in a vector graphics software (you don't need to do this part in order to get credit!)
+I could even write this out to edit in a vector graphics software
 
 ```{r}
 ggsave("cd_summary_map.svg") #remember this always writes the last thing you ran
 
 ```
-
 
