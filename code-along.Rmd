@@ -54,6 +54,7 @@ Here I'll help you out using the spatial features package to make the dataset in
 ```{r}
 
 storefronts_sf <- storefronts_clean %>% 
+  #uh oh... did this not run? If this didn't run, look at the error, you might have missing values. Use this line to filter them out.
   st_as_sf(coords = c("longitude", "latitude"), remove = F)
 
 ```
