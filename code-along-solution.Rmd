@@ -111,7 +111,7 @@ Let's use the sf package to read in a shapefile of the community districts(). We
 
 ```{r}
 
-cds_sf <- read_sf("https://data.cityofnewyork.us/resource/jp9i-3b7y.geojson")
+cds_sf <- read_sf("https://data.cityofnewyork.us/resource/ruf7-3wgc.geojson")
 
 ```
 
@@ -119,7 +119,7 @@ Or we can read it in as a csv and then set the geometry.
 
 ```{r}
 
-cds_csv <- read_csv("https://data.cityofnewyork.us/resource/jp9i-3b7y.csv")
+cds_csv <- read_csv("https://data.cityofnewyork.us/resource/ruf7-3wgc.csv")
 
 cds_sf <- cds_csv %>% 
   st_as_sf(wkt = "the_geom")#the name of the column where the geography info is!
