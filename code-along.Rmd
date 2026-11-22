@@ -34,6 +34,9 @@ storefronts <- read_csv(query)
 
 ```
 
+
+While you're waiting for that to run, might be a good idea to look at the [data dictionary](https://data.cityofnewyork.us/api/views/92iy-9c3n/files/730c00db-39be-43c0-a46a-d8475df0cbfe?download=true&filename=Storefront_Registrations_ReportedVacantOrNot%20_October_2024.xlsx).
+
 This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
 
 Let's start by cleaning the data a little bit.
@@ -68,12 +71,13 @@ storefronts_sf %>%
   geom_sf(mapping = aes())
 
 ```
-Looks like we have some zeroes for longitude and latitude. Filter them out and plot again.
+
+Uh oh - Looks like null island! Filter them out and plot again.
 
 ```{r}
 
 storefronts_sf %>% 
-  #add a line here to filter
+  #use this line to filter them out
   ggplot()+
   geom_sf(mapping = aes())
 
@@ -103,7 +107,7 @@ Let's use the sf package to read in a shapefile of the community districts(). We
 
 ```{r}
 
-cds_sf <- read_sf("https://data.cityofnewyork.us/resource/ruf7-3wgc.geojson")
+cds_sf <- read_sf("https://data.cityofnewyork.us/resource/5crt-au7u.geojson")
 
 ```
 
@@ -111,7 +115,7 @@ Or we can read it in as a csv and then set the geometry.
 
 ```{r}
 
-cds_csv <- read_csv("https://data.cityofnewyork.us/resource/ruf7-3wgc.csv")
+cds_csv <- read_csv("https://data.cityofnewyork.us/resource/5crt-au7u.csv")
 
 cds_sf <- cds_csv %>% 
   st_as_sf(wkt = "the_geom")#the name of the column where the geography info is!
@@ -132,8 +136,8 @@ Amazing! We can use sf to export this as a shapefile that has all the data we ne
 
 ```{r}
 
-write_sf(cd_summary_sf, "cd_summary.geojson")
-
+cd_summary_sf |> 
+  write_sf("cd_summary_vacancy.geojson", driver = "geojson", append = F)
 ```
 But hey! We could also make this map in R! Let's try plotting our summarized shapefile with ggplot.
 

@@ -37,13 +37,13 @@ storefronts <- read_csv(query)
 This is a huge dataset! It would be really difficult to work with in QGIS. Let's use R to summarize some information we can map.
 
 Let's start by cleaning the data a little bit.
-- Get only the data from last year (2023). 2024 is not over yet
+- Get only the data from last year and beyond is not over yet
 - Reformat the borough_block_lot as a character column
 ```{r}
 
 #write your code here
 storefronts_clean <- storefronts %>%
-  filter(reporting_year == 2023) %>% 
+  filter(reporting_year >= 2025) %>% 
   mutate(borough_block_lot = as.character(borough_block_lot))
 
 ```
@@ -57,6 +57,7 @@ Here I'll help you out using the spatial features package to make the dataset in
 ```{r}
 
 storefronts_sf <- storefronts_clean %>% 
+  filter(!is.na(longitude)) |> 
   st_as_sf(coords = c("longitude", "latitude"), remove = F)
 
 ```
@@ -99,8 +100,8 @@ Now let's take that dataset and create a new object where we summarize the vacan
 
 storefronts_cb_sum <- storefronts_clean %>% 
   group_by(community_board) %>% 
-  summarize(vacant = sum(vacant_on_12_31 == "YES"),
-            occupied = sum(vacant_on_12_31 == "NO"),
+  summarize(vacant = sum(vacant_on_12_31 == "YES", na.rm = T),
+            occupied = sum(vacant_on_12_31 == "NO", na.rm = T),
             vacancy_rate = vacant/(vacant + occupied))
 
 ```
@@ -111,7 +112,7 @@ Let's use the sf package to read in a shapefile of the community districts(). We
 
 ```{r}
 
-cds_sf <- read_sf("https://data.cityofnewyork.us/resource/ruf7-3wgc.geojson")
+cds_sf <- read_sf("https://data.cityofnewyork.us/resource/5crt-au7u.geojson")
 
 ```
 
@@ -119,7 +120,7 @@ Or we can read it in as a csv and then set the geometry.
 
 ```{r}
 
-cds_csv <- read_csv("https://data.cityofnewyork.us/resource/ruf7-3wgc.csv")
+cds_csv <- read_csv("https://data.cityofnewyork.us/resource/5crt-au7u.csv")
 
 cds_sf <- cds_csv %>% 
   st_as_sf(wkt = "the_geom")#the name of the column where the geography info is!
@@ -130,15 +131,15 @@ Now let's join them together! Write a join to match our summary by cd to the sha
 
 ```{r}
 
-cd_summary_sf <- full_join(cds_sf, storefronts_cb_sum, by = c("boro_cd"="community_board")) #hint keep the shapefile on the left to preserve the spatial formatting of the object
+cd_summary_sf <- left_join(cds_sf, storefronts_cb_sum, by = c("boro_cd"="community_board")) #hint keep the shapefile on the left to preserve the spatial formatting of the object
 
 ```
 
-Amazing! We can use sf to export this as a shapefile that has all the data we need, ready for QGIS
+Amazing! We can use sf to export this as a shapefile that has all the data we need, ready for QGIS.
 
 ```{r}
-
-write_sf(cd_summary_sf, "cd_summary.geojson")
+cd_summary_sf |> 
+  write_sf("cd_summary_vacancy.geojson", driver = "geojson", append = F)
 
 ```
 But hey! We could also make this map in R! Let's try plotting our summarized shapefile with ggplot.
